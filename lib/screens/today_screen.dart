@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/reminder.dart';
 import '../services/reminder_service.dart';
+import '../add_reminder_screen.dart';
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({super.key});
@@ -28,6 +30,13 @@ class TodayScreen extends StatelessWidget {
             _buildTodaysSummary(),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddReminderScreen()),
+        ),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -89,11 +98,92 @@ class TodayScreen extends StatelessWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        _buildSummaryCard('Tasks', '3/5 completed', Icons.task_alt, Colors.green),
-        _buildSummaryCard('Habits', '2/4 done', Icons.trending_up, Colors.orange),
-        _buildSummaryCard('Water', '6/8 glasses', Icons.water_drop, Colors.blue),
+        _buildTasksSummary(),
+        _buildHabitsSummary(),
+        _buildWaterSummary(),
       ],
     );
+  }
+
+  Widget _buildTasksSummary() {
+    return StreamBuilder<List<Reminder>>(
+      stream: ReminderService.getReminders(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        final today = DateTime.now().toIso8601String().split('T')[0];
+        final todayTasks = snapshot.data!.where((r) => 
+          r.remindAt.toIso8601String().split('T')[0] == today
+        ).toList();
+        
+        final completed = todayTasks.where((t) => t.isDone).length;
+        final total = todayTasks.length;
+        
+        return _buildSummaryCard(
+          'Tasks', 
+          '$completed/$total completed', 
+          Icons.task_alt, 
+          Colors.green
+        );
+      },
+    );
+  }
+
+  Widget _buildHabitsSummary() {
+    return StreamBuilder(
+      stream: _getHabitsStream(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        
+        final habits = snapshot.data!.docs;
+        final today = DateTime.now().toIso8601String().split('T')[0];
+        final completed = habits.where((h) => 
+          (h.data() as Map)['lastCompleted'] == today
+        ).length;
+        
+        return _buildSummaryCard(
+          'Habits', 
+          '$completed/${habits.length} done', 
+          Icons.trending_up, 
+          Colors.orange
+        );
+      },
+    );
+  }
+
+  Widget _buildWaterSummary() {
+    return StreamBuilder(
+      stream: _getWaterStream(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data() as Map<String, dynamic>?;
+        final intake = data?['intake'] ?? 0;
+        final goal = data?['goal'] ?? 8;
+        
+        return _buildSummaryCard(
+          'Water', 
+          '$intake/$goal glasses', 
+          Icons.water_drop, 
+          Colors.blue
+        );
+      },
+    );
+  }
+
+  Stream _getHabitsStream() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return FirebaseFirestore.instance
+        .collection('habits')
+        .where('userId', isEqualTo: uid)
+        .snapshots();
+  }
+
+  Stream _getWaterStream() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    return FirebaseFirestore.instance
+        .collection('water_intake')
+        .doc('${uid}_$today')
+        .snapshots();
   }
 
   Widget _buildSummaryCard(String title, String progress, IconData icon, Color color) {
@@ -103,8 +193,14 @@ class TodayScreen extends StatelessWidget {
         title: Text(title),
         subtitle: Text(progress),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () => _navigateToScreen(title),
       ),
     );
+  }
+
+  void _navigateToScreen(String screenName) {
+    // This would typically use a navigation controller or callback
+    // For now, we'll show a snackbar as the screens are in bottom navigation
   }
 
   String _getGreeting() {

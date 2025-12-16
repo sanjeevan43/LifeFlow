@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if signedIn() && isOwner(userId);
+    }
+
+    // Tasks collection
+    match /tasks/{taskId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read, update, delete: if signedIn() && isOwner(resource.data.userId);
+    }
+
+    // Habits collection
+    match /habits/{habitId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read, update, delete: if signedIn() && isOwner(resource.data.userId);
+    }
+
+    // Water collection
+    match /water/{waterId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read, update, delete: if signedIn() && isOwner(resource.data.userId);
+    }
+
+    // Test collection (for debugging)
+    match /test/{testId} {
+      allow read, write: if signedIn();
+    }
+  }
+}

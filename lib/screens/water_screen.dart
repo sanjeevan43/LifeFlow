@@ -27,7 +27,7 @@ class WaterScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildQuickActions(),
                 const SizedBox(height: 24),
-                _buildGoalSetting(goal),
+                _buildGoalSetting(context, goal),
               ],
             ),
           );
@@ -76,9 +76,11 @@ class WaterScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildActionButton('+1 Glass', Icons.water_drop, () => _addWater(1)),
-        _buildActionButton('+2 Glasses', Icons.water_drop, () => _addWater(2)),
-        _buildActionButton('Reset', Icons.refresh, _resetWater),
+        Expanded(child: _buildActionButton('+1 Glass', Icons.water_drop, () => _addWater(1))),
+        const SizedBox(width: 8),
+        Expanded(child: _buildActionButton('+2 Glasses', Icons.water_drop, () => _addWater(2))),
+        const SizedBox(width: 8),
+        Expanded(child: _buildActionButton('Reset', Icons.refresh, _resetWater)),
       ],
     );
   }
@@ -87,11 +89,11 @@ class WaterScreen extends StatelessWidget {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon),
-      label: Text(label),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
     );
   }
 
-  Widget _buildGoalSetting(int currentGoal) {
+  Widget _buildGoalSetting(BuildContext context, int currentGoal) {
     return Card(
       child: ListTile(
         leading: const Icon(Icons.flag),
@@ -99,7 +101,7 @@ class WaterScreen extends StatelessWidget {
         subtitle: Text('$currentGoal glasses'),
         trailing: IconButton(
           icon: const Icon(Icons.edit),
-          onPressed: () => _showGoalDialog(currentGoal),
+          onPressed: () => _showGoalDialog(context, currentGoal),
         ),
       ),
     );
@@ -131,7 +133,52 @@ class WaterScreen extends StatelessWidget {
         .update({'intake': 0});
   }
 
-  void _showGoalDialog(int currentGoal) {
-    // Goal setting dialog implementation
+  void _showGoalDialog(BuildContext context, int currentGoal) {
+    final controller = TextEditingController(text: currentGoal.toString());
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Daily Goal'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Glasses per day',
+            suffixText: 'glasses',
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newGoal = int.tryParse(controller.text) ?? 8;
+              _updateGoal(newGoal);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateGoal(int newGoal) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    
+    await FirebaseFirestore.instance
+        .collection('water_intake')
+        .doc('${uid}_$today')
+        .set({
+      'userId': uid,
+      'date': today,
+      'goal': newGoal,
+      'intake': 0,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }

@@ -33,7 +33,6 @@ class TasksScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               return ReminderCard(
                 reminder: tasks[index],
-                onEdit: () {},
               );
             },
           );

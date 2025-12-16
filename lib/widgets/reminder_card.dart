@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/reminder.dart';
 import '../services/reminder_service.dart';
+import '../edit_reminder_screen.dart';
 
 class ReminderCard extends StatelessWidget {
   final Reminder reminder;
@@ -16,7 +17,7 @@ class ReminderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: Checkbox(
           value: reminder.isDone,
@@ -40,7 +41,7 @@ class ReminderCard extends StatelessWidget {
               const Icon(Icons.repeat, size: 16, color: Colors.blue),
             IconButton(
               icon: const Icon(Icons.edit, size: 20),
-              onPressed: onEdit,
+              onPressed: () => navigateToEdit(context),
             ),
             IconButton(
               icon: const Icon(Icons.delete, size: 20, color: Colors.red),
@@ -54,6 +55,15 @@ class ReminderCard extends StatelessWidget {
 
   Future<void> markReminderAsDone(bool isDone) async {
     await ReminderService.markReminderAsDone(reminder.id, isDone);
+  }
+
+  void navigateToEdit(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditReminderScreen(reminder: reminder),
+      ),
+    );
   }
 
   void confirmDelete(BuildContext context) {

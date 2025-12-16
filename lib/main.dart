@@ -21,7 +21,18 @@ Future<void> initializeApp() async {
 }
 
 Future<void> initializeFirebase() async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    
+    // Test Firestore connection
+    await FirebaseFirestore.instance.enableNetwork();
+    print('✅ Firebase initialized successfully');
+    print('✅ Firestore connected');
+    
+  } catch (e) {
+    print('❌ Firebase initialization error: $e');
+    rethrow;
+  }
 }
 
 Future<void> initializeNotifications() async {
@@ -113,8 +124,23 @@ class LifeFlowApp extends StatelessWidget {
           .collection('users')
           .doc(user.uid)
           .get();
-      return doc.exists && doc.data()?['profileComplete'] == true;
+      
+      if (!doc.exists) {
+        // Create user document if it doesn't exist
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          'email': user.email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'profileComplete': false,
+        });
+        return false;
+      }
+      
+      return doc.data()?['profileComplete'] == true;
     } catch (e) {
+      print('Error checking user profile: $e');
       return false;
     }
   }

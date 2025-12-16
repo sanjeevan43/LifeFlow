@@ -4,6 +4,7 @@ import 'screens/tasks_screen.dart';
 import 'screens/habits_screen.dart';
 import 'screens/water_screen.dart';
 import 'screens/profile_screen.dart';
+import 'firebase_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('LifeFlow'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const FirebaseTestScreen()),
+            ),
+          ),
+        ],
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
