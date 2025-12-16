@@ -7,12 +7,26 @@ import 'auth_screen.dart';
 import 'user_details_screen.dart';
 import 'home_screen.dart';
 import 'notification_service.dart';
+import 'services/fcm_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService.initialize();
+  await initializeApp();
   runApp(const LifeFlowApp());
+}
+
+Future<void> initializeApp() async {
+  await initializeFirebase();
+  await initializeNotifications();
+}
+
+Future<void> initializeFirebase() async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
+
+Future<void> initializeNotifications() async {
+  await NotificationService.initialize();
+  await FCMService.initializeFCM();
 }
 
 class LifeFlowApp extends StatelessWidget {
@@ -68,7 +82,7 @@ class LifeFlowApp extends StatelessWidget {
         ),
       ),
       home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+        stream: checkAuthState(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SplashScreen();
@@ -104,6 +118,10 @@ class LifeFlowApp extends StatelessWidget {
       return false;
     }
   }
+}
+
+Stream<User?> checkAuthState() {
+  return FirebaseAuth.instance.authStateChanges();
 }
 
 class SplashScreen extends StatelessWidget {

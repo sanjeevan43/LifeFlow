@@ -1,19 +1,18 @@
 class NotificationService {
   static Future<void> initialize() async {
-    // Placeholder for future notification implementation
+    // Initialize local notifications
   }
 
-  static Future<void> scheduleTaskNotification({
-    required int id,
-    required String title,
-    required String body,
-    required DateTime scheduledTime,
-  }) async {
-    // Placeholder - notifications will be added later
-    print('Notification scheduled: $title at $scheduledTime');
+  static Future<void> scheduleLocalNotification(String reminderId, String title, DateTime dateTime) async {
+    // Schedule local notification
   }
 
-  static Future<void> cancelNotification(int id) async {
-    // Placeholder
+  static Future<void> cancelLocalNotification(String reminderId) async {
+    // Cancel local notification
+  }
+
+  static Future<void> rescheduleNotification(String reminderId, String title, DateTime dateTime) async {
+    await cancelLocalNotification(reminderId);
+    await scheduleLocalNotification(reminderId, title, dateTime);
   }
 }
