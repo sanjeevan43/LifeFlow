@@ -1,107 +1,65 @@
+// Optimized FirestoreService - now uses FirebaseService for better performance
+import 'firebase_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
+/// Lightweight wrapper around FirebaseService for backward compatibility
+/// All methods now delegate to the optimized FirebaseService
 class FirestoreService {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  static String? get currentUserId => _auth.currentUser?.uid;
+  // Delegate all methods to FirebaseService for consistency and performance
+  
+  static String? get currentUserId => FirebaseService.currentUserId;
 
   // User operations
   static Future<void> createUserProfile(Map<String, dynamic> userData) async {
     if (currentUserId == null) throw Exception('User not authenticated');
-    
-    await _db.collection('users').doc(currentUserId).set({
-      ...userData,
-      'createdAt': FieldValue.serverTimestamp(),
-      'profileComplete': true,
-    });
+    await FirebaseService.createUserProfile(currentUserId!, userData);
   }
 
   static Future<DocumentSnapshot> getUserProfile() async {
     if (currentUserId == null) throw Exception('User not authenticated');
-    return await _db.collection('users').doc(currentUserId).get();
+    return await FirebaseService.getUserProfile(currentUserId!);
   }
 
-  // Task operations
+  // Task operations - delegate to FirebaseService
   static Future<void> addTask(Map<String, dynamic> taskData) async {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    await _db.collection('tasks').add({
-      ...taskData,
-      'userId': currentUserId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    await FirebaseService.addTask(taskData);
   }
 
   static Stream<QuerySnapshot> getTasks() {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    return _db
-        .collection('tasks')
-        .where('userId', isEqualTo: currentUserId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return FirebaseService.getUserTasks();
   }
 
   static Future<void> updateTask(String taskId, Map<String, dynamic> updates) async {
-    await _db.collection('tasks').doc(taskId).update(updates);
+    await FirebaseService.updateTask(taskId, updates);
   }
 
   static Future<void> deleteTask(String taskId) async {
-    await _db.collection('tasks').doc(taskId).delete();
+    await FirebaseService.deleteTask(taskId);
   }
 
-  // Habit operations
+  // Habit operations - delegate to FirebaseService
   static Future<void> addHabit(Map<String, dynamic> habitData) async {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    await _db.collection('habits').add({
-      ...habitData,
-      'userId': currentUserId,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    await FirebaseService.addHabit(habitData);
   }
 
   static Stream<QuerySnapshot> getHabits() {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    return _db
-        .collection('habits')
-        .where('userId', isEqualTo: currentUserId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    return FirebaseService.getUserHabits();
   }
 
   static Future<void> updateHabit(String habitId, Map<String, dynamic> updates) async {
-    await _db.collection('habits').doc(habitId).update(updates);
+    await FirebaseService.updateHabit(habitId, updates);
   }
 
   static Future<void> deleteHabit(String habitId) async {
-    await _db.collection('habits').doc(habitId).delete();
+    await FirebaseService.deleteHabit(habitId);
   }
 
-  // Water tracking operations
+  // Water tracking operations - delegate to FirebaseService
   static Future<void> addWaterIntake(int amount) async {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
-    await _db.collection('water').doc('${currentUserId}_$dateKey').set({
-      'userId': currentUserId,
-      'date': dateKey,
-      'amount': FieldValue.increment(amount),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    await FirebaseService.addWaterIntake(amount);
   }
 
   static Stream<DocumentSnapshot> getTodayWaterIntake() {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    
-    return _db.collection('water').doc('${currentUserId}_$dateKey').snapshots();
+    return FirebaseService.getTodayWaterIntake();
   }
 }

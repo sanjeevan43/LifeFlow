@@ -9,14 +9,14 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "dueDate",
-          "order": "ASCENDING"
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
         }
       ]
     },
     {
       "collectionGroup": "habits",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION", 
       "fields": [
         {
           "fieldPath": "userId",

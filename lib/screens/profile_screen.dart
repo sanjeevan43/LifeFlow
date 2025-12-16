@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart';
-import '../services/fcm_service.dart';
-import '../settings_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/firestore_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,15 +15,17 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Profile'),
         automaticallyImplyLeading: false,
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: [
-          _buildProfileHeader(user),
-          const SizedBox(height: 24),
-          _buildSettingsSection(context),
-          const SizedBox(height: 24),
-          _buildAccountSection(context),
-        ],
+        child: Column(
+          children: [
+            _buildProfileHeader(user),
+            const SizedBox(height: 24),
+            _buildStatsSection(),
+            const SizedBox(height: 24),
+            _buildSettingsSection(context),
+          ],
+        ),
       ),
     );
   }
@@ -32,32 +33,25 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildProfileHeader(User? user) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           children: [
             CircleAvatar(
-              radius: 30,
+              radius: 50,
               backgroundColor: const Color(0xFF4CAF50),
               child: Text(
                 user?.email?.substring(0, 1).toUpperCase() ?? 'U',
-                style: const TextStyle(fontSize: 24, color: Colors.white),
+                style: const TextStyle(fontSize: 32, color: Colors.white),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Welcome!',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    user?.email ?? 'No email',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 16),
+            Text(
+              user?.email ?? 'User',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Member since ${_formatDate(user?.metadata.creationTime)}',
+              style: TextStyle(color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -65,105 +59,205 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildStatsSection() {
+    return FutureBuilder<Map<String, int>>(
+      future: _getStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? {'tasks': 0, 'habits': 0, 'water': 0};
+        
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your Stats',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('Tasks', stats['tasks']!, Icons.task_alt, Colors.green),
+                    _buildStatItem('Habits', stats['habits']!, Icons.trending_up, Colors.orange),
+                    _buildStatItem('Water Today', stats['water']!, Icons.water_drop, Colors.blue),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(String label, int value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 32),
+        const SizedBox(height: 8),
+        Text(
+          value.toString(),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
   Widget _buildSettingsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Settings',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('App Settings'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text('Notifications'),
-                trailing: Switch(
-                  value: true,
-                  onChanged: (value) {},
-                ),
-              ),
-            ],
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.notifications),
+            title: const Text('Notifications'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => _showNotificationSettings(context),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccountSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Account',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.help),
-                title: const Text('Help & Support'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('About'),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => _showAboutDialog(context),
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Logout', style: TextStyle(color: Colors.red)),
-                onTap: () => _logout(context),
-              ),
-            ],
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.backup),
+            title: const Text('Backup & Sync'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => _showBackupInfo(context),
           ),
-        ),
-      ],
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text('Help & Support'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => _showHelp(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            onTap: () => _signOut(context),
+          ),
+        ],
+      ),
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'LifeFlow',
-      applicationVersion: '1.0.0',
-      applicationLegalese: '© 2024 LifeFlow App',
-    );
+  Future<Map<String, int>> _getStats() async {
+    try {
+      final tasksSnapshot = await FirebaseFirestore.instance
+          .collection('tasks')
+          .where('userId', isEqualTo: FirestoreService.currentUserId)
+          .get();
+      
+      final habitsSnapshot = await FirebaseFirestore.instance
+          .collection('habits')
+          .where('userId', isEqualTo: FirestoreService.currentUserId)
+          .get();
+      
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final waterDoc = await FirebaseFirestore.instance
+          .collection('water')
+          .doc('${FirestoreService.currentUserId}_$dateKey')
+          .get();
+      
+      return {
+        'tasks': tasksSnapshot.docs.length,
+        'habits': habitsSnapshot.docs.length,
+        'water': waterDoc.data()?['amount'] ?? 0,
+      };
+    } catch (e) {
+      return {'tasks': 0, 'habits': 0, 'water': 0};
+    }
   }
 
-  Future<void> _logout(BuildContext context) async {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Unknown';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _showNotificationSettings(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        title: const Text('Notification Settings'),
+        content: const Text('Notification settings will be available in a future update.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBackupInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Backup & Sync'),
+        content: const Text('Your data is automatically synced to Firebase Cloud Firestore and available across all your devices.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Help & Support'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('LifeFlow - Daily Reminder & Habit Helper'),
+            SizedBox(height: 8),
+            Text('• Add and manage daily tasks'),
+            Text('• Track habits and build streaks'),
+            Text('• Monitor water intake'),
+            Text('• Get reminders and notifications'),
+            SizedBox(height: 8),
+            Text('For support, contact: support@lifeflow.app'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _signOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () async {
+          ElevatedButton(
+            onPressed: () {
+              FirebaseAuth.instance.signOut();
               Navigator.pop(context);
-              await FCMService.deleteFCMTokenOnLogout();
-              await AuthService.logoutUser();
             },
-            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Sign Out'),
           ),
         ],
       ),

@@ -1,0 +1,33 @@
+Add this section to your Firebase rules (after the WATER COLLECTION section):
+
+    /* =========================
+       WATER INTAKE COLLECTION
+    ========================== */
+
+    match /water_intake/{waterIntakeId} {
+      allow create: if signedIn()
+        && isOwner(request.resource.data.userId);
+      allow read: if signedIn()
+        && (
+          isOwner(resource.data.userId)
+          || isAdmin()
+        );
+      allow update: if signedIn()
+        && (
+          isOwner(resource.data.userId)
+          || isAdmin()
+        );
+      allow delete: if signedIn()
+        && (
+          isOwner(resource.data.userId)
+          || isAdmin()
+        );
+    }
+
+INSTRUCTIONS:
+1. Go to Firebase Console → Firestore → Rules
+2. Find the WATER COLLECTION section
+3. Add the above WATER INTAKE COLLECTION section after it
+4. Click "Publish"
+
+This will fix the permission errors you're seeing!

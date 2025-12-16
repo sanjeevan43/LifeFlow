@@ -1,34 +1,85 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/firebase_service.dart';
 
-class WaterScreen extends StatelessWidget {
+class WaterScreen extends StatefulWidget {
   const WaterScreen({super.key});
 
   @override
+  State<WaterScreen> createState() => _WaterScreenState();
+}
+
+class _WaterScreenState extends State<WaterScreen> {
+  
+  bool _isLoading = false;
+
+  @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Water Intake'),
+        title: const Text('Water Tracker'),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => setState(() {}),
+          ),
+        ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: _getWaterStream(),
+        stream: FirebaseService.getTodayWaterIntake(),
         builder: (context, snapshot) {
-          final data = snapshot.data?.data() as Map<String, dynamic>?;
-          final intake = data?['intake'] ?? 0;
-          final goal = data?['goal'] ?? 8;
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading water data...'),
+                ],
+              ),
+            );
+          }
           
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildProgressCard(intake, goal),
-                const SizedBox(height: 24),
-                _buildQuickActions(),
-                const SizedBox(height: 24),
-                _buildGoalSetting(context, goal),
-              ],
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error: ${snapshot.error}'),
+                  ElevatedButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+          
+          final data = snapshot.data?.data() as Map<String, dynamic>?;
+          final currentAmount = data?['amount'] ?? 0;
+          const dailyGoal = 8; // 8 glasses per day
+          
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {});
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildWaterProgress(currentAmount, dailyGoal),
+                  const SizedBox(height: 32),
+                  _buildQuickActions(),
+                  const SizedBox(height: 32),
+                  _buildTodayStats(currentAmount, dailyGoal),
+                ],
+              ),
             ),
           );
         },
@@ -36,36 +87,53 @@ class WaterScreen extends StatelessWidget {
     );
   }
 
-  Stream<DocumentSnapshot> _getWaterStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    return FirebaseFirestore.instance
-        .collection('water_intake')
-        .doc('${uid}_$today')
-        .snapshots();
-  }
-
-  Widget _buildProgressCard(int intake, int goal) {
-    final progress = goal > 0 ? intake / goal : 0.0;
+  Widget _buildWaterProgress(int current, int goal) {
+    final progress = (current / goal).clamp(0.0, 1.0);
     
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Text(
-              '$intake / $goal',
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 12,
+                    backgroundColor: Colors.blue.shade100,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                  ),
+                ),
+                Column(
+                  children: [
+                    Icon(Icons.water_drop, size: 40, color: Colors.blue.shade600),
+                    Text(
+                      '$current',
+                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'of $goal glasses',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const Text('glasses today'),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.grey.shade300,
-              valueColor: const AlwaysStoppedAnimation(Colors.blue),
+              value: progress,
+              backgroundColor: Colors.blue.shade100,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
             ),
             const SizedBox(height: 8),
-            Text('${(progress * 100).toInt()}% of daily goal'),
+            Text(
+              '${(progress * 100).round()}% of daily goal',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
           ],
         ),
       ),
@@ -73,112 +141,155 @@ class WaterScreen extends StatelessWidget {
   }
 
   Widget _buildQuickActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Quick Add',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildQuickAddButton('1 Glass', 1, Icons.local_drink),
+                _buildQuickAddButton('2 Glasses', 2, Icons.local_cafe),
+                _buildQuickAddButton('Bottle', 3, Icons.sports_bar),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAddButton(String label, int amount, IconData icon) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : () => _addWater(amount),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Column(
+                  children: [
+                    Icon(icon),
+                    const SizedBox(height: 4),
+                    Text(label, textAlign: TextAlign.center),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodayStats(int current, int goal) {
+    final remaining = (goal - current).clamp(0, goal);
+    
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Today\'s Summary',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem('Consumed', '$current glasses', Icons.check_circle, Colors.green),
+                _buildStatItem('Remaining', '$remaining glasses', Icons.schedule, Colors.orange),
+                _buildStatItem('Goal', '$goal glasses', Icons.flag, Colors.blue),
+              ],
+            ),
+            if (current >= goal) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.celebration, color: Colors.green.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Congratulations! You\'ve reached your daily water goal!',
+                        style: TextStyle(color: Colors.green.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
       children: [
-        Expanded(child: _buildActionButton('+1 Glass', Icons.water_drop, () => _addWater(1))),
-        const SizedBox(width: 8),
-        Expanded(child: _buildActionButton('+2 Glasses', Icons.water_drop, () => _addWater(2))),
-        const SizedBox(width: 8),
-        Expanded(child: _buildActionButton('Reset', Icons.refresh, _resetWater)),
+        Icon(icon, color: color, size: 32),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        ),
       ],
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, VoidCallback onPressed) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-    );
-  }
-
-  Widget _buildGoalSetting(BuildContext context, int currentGoal) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.flag),
-        title: const Text('Daily Goal'),
-        subtitle: Text('$currentGoal glasses'),
-        trailing: IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () => _showGoalDialog(context, currentGoal),
-        ),
-      ),
-    );
-  }
-
   Future<void> _addWater(int amount) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    final docRef = FirebaseFirestore.instance
-        .collection('water_intake')
-        .doc('${uid}_$today');
-
-    await docRef.set({
-      'userId': uid,
-      'date': today,
-      'intake': FieldValue.increment(amount),
-      'goal': 8,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> _resetWater() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    if (_isLoading) return;
     
-    await FirebaseFirestore.instance
-        .collection('water_intake')
-        .doc('${uid}_$today')
-        .update({'intake': 0});
-  }
-
-  void _showGoalDialog(BuildContext context, int currentGoal) {
-    final controller = TextEditingController(text: currentGoal.toString());
+    setState(() {
+      _isLoading = true;
+    });
     
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Set Daily Goal'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Glasses per day',
-            suffixText: 'glasses',
+    try {
+      await FirebaseService.addWaterIntake(amount);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added $amount glass${amount > 1 ? 'es' : ''} of water!'),
+            duration: const Duration(seconds: 1),
           ),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final newGoal = int.tryParse(controller.text) ?? 8;
-              _updateGoal(newGoal);
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _updateGoal(int newGoal) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    
-    await FirebaseFirestore.instance
-        .collection('water_intake')
-        .doc('${uid}_$today')
-        .set({
-      'userId': uid,
-      'date': today,
-      'goal': newGoal,
-      'intake': 0,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding water: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 }

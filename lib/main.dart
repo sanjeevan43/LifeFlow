@@ -1,43 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_options.dart';
 import 'auth_screen.dart';
-import 'user_details_screen.dart';
 import 'home_screen.dart';
-import 'notification_service.dart';
-import 'services/fcm_service.dart';
+import 'services/firebase_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeApp();
-  runApp(const LifeFlowApp());
-}
-
-Future<void> initializeApp() async {
-  await initializeFirebase();
-  await initializeNotifications();
-}
-
-Future<void> initializeFirebase() async {
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    
-    // Test Firestore connection
-    await FirebaseFirestore.instance.enableNetwork();
-    print('✅ Firebase initialized successfully');
-    print('✅ Firestore connected');
-    
-  } catch (e) {
-    print('❌ Firebase initialization error: $e');
-    rethrow;
-  }
-}
-
-Future<void> initializeNotifications() async {
+  
+  // Initialize Firebase
+  await FirebaseService.initialize();
+  
+  // Initialize Notifications
   await NotificationService.initialize();
-  await FCMService.initializeFCM();
+  
+  runApp(const LifeFlowApp());
 }
 
 class LifeFlowApp extends StatelessWidget {
@@ -93,21 +70,62 @@ class LifeFlowApp extends StatelessWidget {
         ),
       ),
       home: StreamBuilder<User?>(
-        stream: checkAuthState(),
+        stream: FirebaseService.authStateChanges,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const SplashScreen();
           }
+          
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('Authentication Error: ${snapshot.error}'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Restart the app
+                        main();
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
           if (snapshot.hasData) {
             return FutureBuilder<bool>(
-              future: _checkUserProfile(snapshot.data!),
+              future: _ensureUserProfile(snapshot.data!),
               builder: (context, profileSnapshot) {
                 if (profileSnapshot.connectionState == ConnectionState.waiting) {
                   return const LoadingScreen();
                 }
-                return profileSnapshot.data == true 
-                  ? const HomeScreen() 
-                  : UserDetailsScreen(user: snapshot.data!);
+                if (profileSnapshot.hasError) {
+                  return Scaffold(
+                    body: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error, size: 64, color: Colors.red),
+                          const SizedBox(height: 16),
+                          Text('Profile Error: ${profileSnapshot.error}'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => FirebaseService.signOut(),
+                            child: const Text('Sign Out'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const HomeScreen();
               },
             );
           }
@@ -118,36 +136,23 @@ class LifeFlowApp extends StatelessWidget {
     );
   }
 
-  Future<bool> _checkUserProfile(User user) async {
+  Future<bool> _ensureUserProfile(User user) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc = await FirebaseService.getUserProfile(user.uid);
       
       if (!doc.exists) {
-        // Create user document if it doesn't exist
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .set({
+        await FirebaseService.createUserProfile(user.uid, {
           'email': user.email,
-          'createdAt': FieldValue.serverTimestamp(),
-          'profileComplete': false,
+          'displayName': user.displayName ?? user.email?.split('@')[0] ?? 'User',
         });
-        return false;
       }
       
-      return doc.data()?['profileComplete'] == true;
+      return true;
     } catch (e) {
-      print('Error checking user profile: $e');
+      print('Error ensuring user profile: $e');
       return false;
     }
   }
-}
-
-Stream<User?> checkAuthState() {
-  return FirebaseAuth.instance.authStateChanges();
 }
 
 class SplashScreen extends StatelessWidget {
@@ -192,6 +197,34 @@ class LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.task_alt, size: 40, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            const Text('Setting up your profile...', style: TextStyle(fontSize: 16)),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -4,7 +4,6 @@ import 'screens/tasks_screen.dart';
 import 'screens/habits_screen.dart';
 import 'screens/water_screen.dart';
 import 'screens/profile_screen.dart';
-import 'firebase_test_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,34 +14,28 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const TodayScreen(),
-    const TasksScreen(),
-    const HabitsScreen(),
-    const WaterScreen(),
-    const ProfileScreen(),
-  ];
+  
+  Widget _getCurrentScreen() {
+    switch (_currentIndex) {
+      case 0:
+        return const TodayScreen();
+      case 1:
+        return const TasksScreen();
+      case 2:
+        return const HabitsScreen();
+      case 3:
+        return const WaterScreen();
+      case 4:
+        return const ProfileScreen();
+      default:
+        return const TodayScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('LifeFlow'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const FirebaseTestScreen()),
-            ),
-          ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _getCurrentScreen(),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,

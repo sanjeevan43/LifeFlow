@@ -2,41 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../models/reminder.dart';
-import '../services/reminder_service.dart';
-import '../add_reminder_screen.dart';
+import '../models/task.dart';
+import '../models/habit.dart';
+import '../services/firebase_service.dart';
 
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
 
   @override
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  Map<String, int>? _cachedStats;
+  DateTime? _lastStatsUpdate;
+
+  @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('Today'),
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeCard(),
-            const SizedBox(height: 16),
-            _buildNextReminderCard(),
-            const SizedBox(height: 16),
-            _buildTodaysSummary(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeCard(),
+              const SizedBox(height: 16),
+              _buildNextReminderCard(),
+              const SizedBox(height: 16),
+              _buildTodaysSummary(),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddReminderScreen()),
-        ),
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -63,26 +73,39 @@ class TodayScreen extends StatelessWidget {
   }
 
   Widget _buildNextReminderCard() {
-    return StreamBuilder<List<Reminder>>(
-      stream: ReminderService.getReminders(),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseService.getUserTasks(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(
+            child: ListTile(
+              leading: CircularProgressIndicator(),
+              title: Text('Loading next task...'),
+            ),
+          );
+        }
         
-        final upcoming = snapshot.data!
-            .where((r) => !r.isDone && r.remindAt.isAfter(DateTime.now()))
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        final tasks = snapshot.data!.docs
+            .map((doc) => Task.fromFirestore(doc))
+            .where((task) => !task.isCompleted && task.dueDate != null && task.dueDate!.isAfter(DateTime.now()))
             .toList();
         
-        if (upcoming.isEmpty) return const SizedBox.shrink();
+        if (tasks.isEmpty) return const SizedBox.shrink();
         
-        final next = upcoming.first;
+        tasks.sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+        final next = tasks.first;
         
         return Card(
           color: Colors.blue.shade50,
           child: ListTile(
             leading: Icon(Icons.schedule, color: Colors.blue.shade600),
-            title: const Text('Next Reminder'),
+            title: const Text('Next Task'),
             subtitle: Text(next.title),
-            trailing: Text(DateFormat('HH:mm').format(next.remindAt)),
+            trailing: Text(DateFormat('MMM dd').format(next.dueDate!)),
           ),
         );
       },
@@ -106,22 +129,22 @@ class TodayScreen extends StatelessWidget {
   }
 
   Widget _buildTasksSummary() {
-    return StreamBuilder<List<Reminder>>(
-      stream: ReminderService.getReminders(),
+    return FutureBuilder<Map<String, int>>(
+      future: _getCachedStats(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildSummaryCard(
+            'Tasks', 
+            'Loading...', 
+            Icons.task_alt, 
+            Colors.green
+          );
+        }
         
-        final today = DateTime.now().toIso8601String().split('T')[0];
-        final todayTasks = snapshot.data!.where((r) => 
-          r.remindAt.toIso8601String().split('T')[0] == today
-        ).toList();
-        
-        final completed = todayTasks.where((t) => t.isDone).length;
-        final total = todayTasks.length;
-        
+        final stats = snapshot.data ?? {'completedTasks': 0, 'totalTasks': 0};
         return _buildSummaryCard(
           'Tasks', 
-          '$completed/$total completed', 
+          '${stats['completedTasks']}/${stats['totalTasks']} completed', 
           Icons.task_alt, 
           Colors.green
         );
@@ -130,20 +153,22 @@ class TodayScreen extends StatelessWidget {
   }
 
   Widget _buildHabitsSummary() {
-    return StreamBuilder(
-      stream: _getHabitsStream(),
+    return FutureBuilder<Map<String, int>>(
+      future: _getCachedStats(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildSummaryCard(
+            'Habits', 
+            'Loading...', 
+            Icons.trending_up, 
+            Colors.orange
+          );
+        }
         
-        final habits = snapshot.data!.docs;
-        final today = DateTime.now().toIso8601String().split('T')[0];
-        final completed = habits.where((h) => 
-          (h.data() as Map)['lastCompleted'] == today
-        ).length;
-        
+        final stats = snapshot.data ?? {'completedHabits': 0, 'totalHabits': 0};
         return _buildSummaryCard(
           'Habits', 
-          '$completed/${habits.length} done', 
+          '${stats['completedHabits']}/${stats['totalHabits']} done', 
           Icons.trending_up, 
           Colors.orange
         );
@@ -152,16 +177,23 @@ class TodayScreen extends StatelessWidget {
   }
 
   Widget _buildWaterSummary() {
-    return StreamBuilder(
-      stream: _getWaterStream(),
+    return FutureBuilder<Map<String, int>>(
+      future: _getCachedStats(),
       builder: (context, snapshot) {
-        final data = snapshot.data?.data() as Map<String, dynamic>?;
-        final intake = data?['intake'] ?? 0;
-        final goal = data?['goal'] ?? 8;
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildSummaryCard(
+            'Water', 
+            'Loading...', 
+            Icons.water_drop, 
+            Colors.blue
+          );
+        }
         
+        final stats = snapshot.data ?? {'waterIntake': 0};
+        const goal = 8;
         return _buildSummaryCard(
           'Water', 
-          '$intake/$goal glasses', 
+          '${stats['waterIntake']}/$goal glasses', 
           Icons.water_drop, 
           Colors.blue
         );
@@ -169,22 +201,7 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  Stream _getHabitsStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    return FirebaseFirestore.instance
-        .collection('habits')
-        .where('userId', isEqualTo: uid)
-        .snapshots();
-  }
 
-  Stream _getWaterStream() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    return FirebaseFirestore.instance
-        .collection('water_intake')
-        .doc('${uid}_$today')
-        .snapshots();
-  }
 
   Widget _buildSummaryCard(String title, String progress, IconData icon, Color color) {
     return Card(
@@ -208,5 +225,41 @@ class TodayScreen extends StatelessWidget {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+
+  Future<Map<String, int>> _getCachedStats() async {
+    final now = DateTime.now();
+    
+    // Use cached data if it's less than 5 minutes old
+    if (_cachedStats != null && 
+        _lastStatsUpdate != null && 
+        now.difference(_lastStatsUpdate!).inMinutes < 5) {
+      return _cachedStats!;
+    }
+    
+    try {
+      final stats = await FirebaseService.getUserStats();
+      _cachedStats = stats;
+      _lastStatsUpdate = now;
+      return stats;
+    } catch (e) {
+      return _cachedStats ?? {
+        'totalTasks': 0,
+        'completedTasks': 0,
+        'totalHabits': 0,
+        'completedHabits': 0,
+        'waterIntake': 0,
+      };
+    }
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _cachedStats = null;
+      _lastStatsUpdate = null;
+    });
+    FirebaseService.clearAllCache();
+    await _getCachedStats();
+    if (mounted) setState(() {});
   }
 }

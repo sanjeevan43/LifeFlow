@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function role() {
+      return userDoc().data.role;
+    }
+
+    function hasRole() {
+      return userDoc().data.keys().hasAny(["role"]);
+    }
+
+    function isAdmin() {
+      return hasRole() && role() == "admin";
+    }
+
+    function isOwner(ownerId) {
+      return request.auth.uid == ownerId;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && isOwner(uid);
+      allow update: if signedIn() && isOwner(uid) && !(request.resource.data.keys().hasAny(["role"]));
+      allow create: if signedIn() && isOwner(uid);
+      allow delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow update: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow delete: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    match /habits/{habitId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow update: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow delete: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    match /water/{waterId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow update: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow delete: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    match /water_intake/{waterIntakeId} {
+      allow create: if signedIn() && isOwner(request.resource.data.userId);
+      allow read: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow update: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow delete: if signedIn() && (isOwner(resource.data.userId) || isAdmin());
+    }
+
+    match /reminders/{reminderId} {
+      allow create: if signedIn() && isOwner(request.resource.data.uid);
+      allow read: if signedIn() && (isOwner(resource.data.uid) || isAdmin());
+      allow update: if signedIn() && (isOwner(resource.data.uid) || isAdmin());
+      allow delete: if signedIn() && (isOwner(resource.data.uid) || isAdmin());
+    }
+
+    match /userTokens/{tokenId} {
+      allow read, write: if signedIn() && isOwner(request.resource.data.uid);
+    }
+
+    match /notifications/{id} {
+      allow read: if signedIn() && isOwner(resource.data.uid);
+      allow create: if signedIn();
+    }
+
+    match /test/{testId} {
+      allow read, write: if signedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
