@@ -15,52 +15,42 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   
-  Widget _getCurrentScreen() {
-    switch (_currentIndex) {
-      case 0:
-        return const TodayScreen();
-      case 1:
-        return const TasksScreen();
-      case 2:
-        return const HabitsScreen();
-      case 3:
-        return const WaterScreen();
-      case 4:
-        return const ProfileScreen();
-      default:
-        return const TodayScreen();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _getCurrentScreen(),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: const [
+          TodayScreen(),
+          TasksScreen(),
+          HabitsScreen(),
+          WaterScreen(),
+          ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: const Color(0xFF4CAF50),
-        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.today),
+            icon: Icon(Icons.dashboard_rounded),
             label: 'Today',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.task_alt),
+            icon: Icon(Icons.check_circle_outline_rounded),
             label: 'Tasks',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.trending_up),
+            icon: Icon(Icons.timeline_rounded),
             label: 'Habits',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.water_drop),
+            icon: Icon(Icons.water_drop_rounded),
             label: 'Water',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.person_rounded),
             label: 'Profile',
           ),
         ],

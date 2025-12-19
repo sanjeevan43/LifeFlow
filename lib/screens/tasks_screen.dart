@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/task.dart';
 import '../services/firebase_service.dart';
+import '../services/gamification_service.dart';
 import '../services/notification_service.dart';
+import 'focus_screen.dart';
+import '../models/task.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -11,11 +13,14 @@ class TasksScreen extends StatefulWidget {
   State<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends State<TasksScreen> {
+class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClientMixin {
   
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -25,6 +30,7 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     
     return Scaffold(
       appBar: AppBar(
@@ -79,7 +85,7 @@ class _TasksScreenState extends State<TasksScreen> {
                 try {
                   return Task.fromFirestore(doc);
                 } catch (e) {
-                  print('Error parsing task: $e');
+                  // debugPrint('Error parsing task: $e');
                   return null;
                 }
               })
@@ -92,10 +98,67 @@ class _TasksScreenState extends State<TasksScreen> {
               setState(() {});
             },
             child: ListView.builder(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(16),
               itemCount: tasks.length,
               itemBuilder: (context, index) {
-                return _buildTaskCard(tasks[index]);
+                final task = tasks[index];
+                final isCompleted = task.isCompleted;
+                
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Checkbox(
+                        value: isCompleted,
+                        onChanged: (bool? value) {
+                          FirebaseService.updateTask(task.id, {'isCompleted': value});
+                          if (value == true) {
+                            GamificationService.awardXP(GamificationService.xpPerTask);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                               const SnackBar(
+                                 content: Text('Task Completed! +10 XP'),
+                                 backgroundColor: Color(0xFF6C63FF),
+                               ),
+                            );
+                          }
+                        },
+                      ),
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          color: isCompleted ? Colors.grey : null,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: task.description.isNotEmpty
+                          ? Text(task.description)
+                          : null,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.timer_outlined, color: Color(0xFFFFD700)),
+                            onPressed: () {
+                               Navigator.push(
+                                 context,
+                                 MaterialPageRoute(
+                                   builder: (context) => FocusScreen(taskTitle: task.title),
+                                 ),
+                               );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => FirebaseService.deleteTask(task.id),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
               },
             ),
           );
@@ -108,36 +171,6 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildTaskCard(Task task) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: ListTile(
-        leading: Checkbox(
-          value: task.isCompleted,
-          onChanged: (value) => _toggleTask(task),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            decoration: task.isCompleted ? TextDecoration.lineThrough : null,
-            color: task.isCompleted ? Colors.grey : null,
-          ),
-        ),
-        subtitle: task.description.isNotEmpty ? Text(task.description) : null,
-        trailing: PopupMenuButton(
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'delete',
-              child: Text('Delete'),
-            ),
-          ],
-          onSelected: (value) {
-            if (value == 'delete') _deleteTask(task.id);
-          },
-        ),
-      ),
-    );
-  }
 
   Widget _buildEmptyState() {
     return const Center(
@@ -284,34 +317,5 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
-  Future<void> _toggleTask(Task task) async {
-    try {
-      await FirebaseService.updateTask(task.id, {
-        'isCompleted': !task.isCompleted,
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating task: $e')),
-        );
-      }
-    }
-  }
 
-  Future<void> _deleteTask(String taskId) async {
-    try {
-      await FirebaseService.deleteTask(taskId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Task deleted')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting task: $e')),
-        );
-      }
-    }
-  }
 }

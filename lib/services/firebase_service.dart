@@ -9,7 +9,7 @@ class FirebaseService {
   
   // Minimal cache for critical data only
   static final Map<String, dynamic> _cache = {};
-  static DateTime? _lastCacheUpdate;
+  // static DateTime? _lastCacheUpdate;
   static const int _maxCacheSize = 10;
   
   // Initialize Firebase
@@ -22,12 +22,12 @@ class FirebaseService {
       // Enable offline persistence
       await _firestore.enableNetwork();
       
-      print('✅ Firebase initialized successfully');
-      print('✅ Project ID: ${_firestore.app.options.projectId}');
-      print('✅ Auth Domain: ${_firestore.app.options.authDomain}');
+      // debugPrint('✅ Firebase initialized successfully');
+      // debugPrint('✅ Project ID: ${_firestore.app.options.projectId}');
+      // debugPrint('✅ Auth Domain: ${_firestore.app.options.authDomain}');
       
     } catch (e) {
-      print('❌ Firebase initialization error: $e');
+      // debugPrint('❌ Firebase initialization error: $e');
       rethrow;
     }
   }
@@ -37,10 +37,10 @@ class FirebaseService {
     try {
       // Lightweight connection test
       await _firestore.enableNetwork();
-      print('✅ Firestore connection successful');
+      // debugPrint('✅ Firestore connection successful');
       return true;
     } catch (e) {
-      print('❌ Firebase connection failed: $e');
+      // debugPrint('❌ Firebase connection failed: $e');
       return false;
     }
   }
@@ -98,7 +98,7 @@ class FirebaseService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      print('Error adding task: $e');
+      // debugPrint('Error adding task: $e');
       rethrow;
     }
   }
@@ -114,7 +114,7 @@ class FirebaseService {
         .limit(50)
         .snapshots()
         .handleError((error) {
-          print('Tasks error: $error');
+          // debugPrint('Tasks error: $error');
           return const Stream.empty();
         });
   }
@@ -156,7 +156,7 @@ class FirebaseService {
         .limit(30)
         .snapshots()
         .handleError((error) {
-          print('Habits error: $error');
+          // debugPrint('Habits error: $error');
           return const Stream.empty();
         });
   }
@@ -202,7 +202,7 @@ class FirebaseService {
     
     return _firestore.collection('water_intake').doc(docId).snapshots()
         .handleError((error) {
-          print('Water error: $error');
+          // debugPrint('Water error: $error');
           return const Stream.empty();
         });
   }
@@ -248,11 +248,11 @@ class FirebaseService {
           .get();
       
       final completedTasks = tasksSnapshot.docs.where((doc) => 
-        (doc.data() as Map<String, dynamic>)['isCompleted'] == true
+        (doc.data())['isCompleted'] == true
       ).length;
       
       final completedHabits = habitsSnapshot.docs.where((doc) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         final lastCompleted = data['lastCompleted'] as Timestamp?;
         if (lastCompleted == null) return false;
         
@@ -270,7 +270,7 @@ class FirebaseService {
         'waterIntake': waterDoc.data()?['amount'] ?? 0,
       };
     } catch (e) {
-      print('Error getting user stats: $e');
+      // debugPrint('Error getting user stats: $e');
       return {
         'totalTasks': 0,
         'completedTasks': 0,
@@ -289,7 +289,7 @@ class FirebaseService {
 
   static void clearAllCache() {
     _cache.clear();
-    _lastCacheUpdate = null;
+    // _lastCacheUpdate = null;
   }
   
   static void _limitCacheSize() {

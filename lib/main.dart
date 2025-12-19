@@ -25,133 +25,136 @@ class LifeFlowApp extends StatelessWidget {
     return MaterialApp(
       title: 'LifeFlow - Daily Reminder & Habit Helper',
       theme: ThemeData(
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF4CAF50),
-          secondary: Color(0xFFFF9800),
-          surface: Colors.white,
-          background: Color(0xFFF8F9FA),
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: Color(0xFF2E3440),
-          onBackground: Color(0xFF2E3440),
-        ),
+        brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4CAF50),
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 56),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 4,
+        // Primary colors
+        primaryColor: const Color(0xFF6C63FF),
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        // Color scheme with VISIBLE colors
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF6C63FF),
+          secondary: Color(0xFF00E5FF),
+          surface: Color(0xFF1E1E1E),      // Visible dark gray, NOT transparent
+          background: Color(0xFF121212),
+          onPrimary: Colors.white,
+          onSecondary: Colors.black,
+          onSurface: Colors.white,         // White text on surfaces
+          onBackground: Colors.white,      // White text on background
+        ),
+        // Card theme - VISIBLE cards
+        cardTheme: CardTheme(
+          color: const Color(0xFF1E1E1E),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
-          ),
-        ),
+        // AppBar theme
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF8F9FA),
-          foregroundColor: Color(0xFF2E3440),
+          backgroundColor: Color(0xFF1E1E1E),
+          foregroundColor: Colors.white,
           elevation: 0,
         ),
+        // Text theme - ensure all text is visible
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white),
+          bodyMedium: TextStyle(color: Colors.white),
+          bodySmall: TextStyle(color: Colors.white70),
+          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          titleMedium: TextStyle(color: Colors.white),
+          labelLarge: TextStyle(color: Colors.white),
+        ),
+        // Input decoration
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF2C2C2C),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          labelStyle: const TextStyle(color: Colors.white70),
+          hintStyle: const TextStyle(color: Colors.white54),
+        ),
+        // Button themes
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6C63FF),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        // Bottom navigation
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF1E1E1E),
+          selectedItemColor: Color(0xFF00E5FF),
+          unselectedItemColor: Colors.white54,
+        ),
+        // List tile
+        listTileTheme: const ListTileThemeData(
+          textColor: Colors.white,
+          iconColor: Colors.white70,
+        ),
+        // Icon theme
+        iconTheme: const IconThemeData(color: Colors.white),
+        // Checkbox theme
+        checkboxTheme: CheckboxThemeData(
+          fillColor: MaterialStateProperty.all(const Color(0xFF6C63FF)),
+          checkColor: MaterialStateProperty.all(Colors.white),
+        ),
       ),
-      home: StreamBuilder<User?>(
-        stream: FirebaseService.authStateChanges,
+      home: const AuthWrapper(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A), // Deep Navy
+            Color(0xFF1E1B4B), // Indigo
+            Color(0xFF312E81), // Deep Purple
+          ],
+        ),
+      ),
+      child: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const SplashScreen();
+            return const LoadingScreen();
           }
-          
-          if (snapshot.hasError) {
-            return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, size: 64, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Authentication Error: ${snapshot.error}'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Restart the app
-                        main();
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          
           if (snapshot.hasData) {
-            return FutureBuilder<bool>(
-              future: _ensureUserProfile(snapshot.data!),
-              builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingScreen();
-                }
-                if (profileSnapshot.hasError) {
-                  return Scaffold(
-                    body: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.error, size: 64, color: Colors.red),
-                          const SizedBox(height: 16),
-                          Text('Profile Error: ${profileSnapshot.error}'),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => FirebaseService.signOut(),
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                return const HomeScreen();
-              },
-            );
+            _ensureUserProfileAndNotifications(snapshot.data!);
+            return const HomeScreen();
           }
           return const AuthScreen();
         },
       ),
-      debugShowCheckedModeBanner: false,
     );
   }
 
-  Future<bool> _ensureUserProfile(User user) async {
-    try {
-      final doc = await FirebaseService.getUserProfile(user.uid);
-      
-      if (!doc.exists) {
+  Future<void> _ensureUserProfileAndNotifications(User user) async {
+    // Ensure user profile exists
+    final doc = await FirebaseService.getUserProfile(user.uid);
+    if (!doc.exists) {
         await FirebaseService.createUserProfile(user.uid, {
           'email': user.email,
           'displayName': user.displayName ?? user.email?.split('@')[0] ?? 'User',
         });
-      }
-      
-      return true;
-    } catch (e) {
-      print('Error ensuring user profile: $e');
-      return false;
     }
+    
+    // Auto-register for push notifications (saves FCM token to Firestore)
+    await NotificationService.registerUserForNotifications();
   }
 }
 

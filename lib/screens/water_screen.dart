@@ -9,12 +9,16 @@ class WaterScreen extends StatefulWidget {
   State<WaterScreen> createState() => _WaterScreenState();
 }
 
-class _WaterScreenState extends State<WaterScreen> {
+class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClientMixin {
   
   bool _isLoading = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     
     return Scaffold(
       appBar: AppBar(

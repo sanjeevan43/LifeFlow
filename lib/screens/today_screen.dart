@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import '../models/task.dart';
-import '../models/habit.dart';
+
 import '../services/firebase_service.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -13,12 +13,16 @@ class TodayScreen extends StatefulWidget {
   State<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends State<TodayScreen> {
+class _TodayScreenState extends State<TodayScreen> with AutomaticKeepAliveClientMixin {
   Map<String, int>? _cachedStats;
   DateTime? _lastStatsUpdate;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     
     return Scaffold(
       appBar: AppBar(

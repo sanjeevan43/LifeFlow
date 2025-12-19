@@ -11,10 +11,13 @@ class HabitsScreen extends StatefulWidget {
   State<HabitsScreen> createState() => _HabitsScreenState();
 }
 
-class _HabitsScreenState extends State<HabitsScreen> {
+class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClientMixin {
   
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  bool get wantKeepAlive => true;
   
   @override
   void dispose() {
@@ -25,6 +28,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     
     return Scaffold(
       appBar: AppBar(
@@ -79,7 +83,7 @@ class _HabitsScreenState extends State<HabitsScreen> {
                 try {
                   return Habit.fromFirestore(doc);
                 } catch (e) {
-                  print('Error parsing habit: $e');
+                  // debugPrint('Error parsing habit: $e');
                   return null;
                 }
               })

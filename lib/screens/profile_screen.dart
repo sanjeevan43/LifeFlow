@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/firestore_service.dart';
+import '../services/firebase_service.dart';
+import '../services/notification_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final user = FirebaseAuth.instance.currentUser;
     
     return Scaffold(
@@ -149,19 +159,19 @@ class ProfileScreen extends StatelessWidget {
     try {
       final tasksSnapshot = await FirebaseFirestore.instance
           .collection('tasks')
-          .where('userId', isEqualTo: FirestoreService.currentUserId)
+          .where('userId', isEqualTo: FirebaseService.currentUserId)
           .get();
       
       final habitsSnapshot = await FirebaseFirestore.instance
           .collection('habits')
-          .where('userId', isEqualTo: FirestoreService.currentUserId)
+          .where('userId', isEqualTo: FirebaseService.currentUserId)
           .get();
       
       final today = DateTime.now();
       final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
       final waterDoc = await FirebaseFirestore.instance
-          .collection('water')
-          .doc('${FirestoreService.currentUserId}_$dateKey')
+          .collection('water_intake')
+          .doc('${FirebaseService.currentUserId}_$dateKey')
           .get();
       
       return {
@@ -184,11 +194,33 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Notification Settings'),
-        content: const Text('Notification settings will be available in a future update.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('System Notifications are enabled.'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await NotificationService.scheduleTaskReminder(
+                  'Test Notification', 
+                  DateTime.now().add(const Duration(seconds: 5))
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Test notification scheduled in 5 seconds')),
+                  );
+                }
+              },
+              child: const Text('Test Notification (5s delay)'),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('Close'),
           ),
         ],
       ),
