@@ -100,94 +100,113 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              const Text('Complete Your Profile ✨', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2E3440))),
-              const SizedBox(height: 8),
-              const Text('Help us personalize your productive experience', style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50))),
-              const SizedBox(height: 32),
-              
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name *',
-                  prefixIcon: Icon(Icons.person_outline, color: Color(0xFF4CAF50)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              TextField(
-                controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Age (Optional)',
-                  prefixIcon: Icon(Icons.cake_outlined, color: Color(0xFFFF9800)),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE0E0E0)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedGender,
-                    isExpanded: true,
-                    dropdownColor: Colors.white,
-                    style: const TextStyle(color: Color(0xFF2E3440)),
-                    items: ['Male', 'Female', 'Other', 'Prefer not to say']
-                        .map((gender) => DropdownMenuItem(value: gender, child: Text(gender)))
-                        .toList(),
-                    onChanged: (value) => setState(() => _selectedGender = value!),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF1E1B4B),
+              Color(0xFF312E81),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                const Text('Complete Your Profile ✨', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 8),
+                const Text('Help us personalize your experience', style: TextStyle(fontSize: 16, color: Color(0xFF00E5FF))),
+                const SizedBox(height: 48),
+                
+                TextField(
+                  controller: _nameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Full Name *',
+                    prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF00E5FF)),
                   ),
                 ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+                const SizedBox(height: 20),
+                
+                TextField(
+                  controller: _ageController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Age (Optional)',
+                    prefixIcon: const Icon(Icons.cake_outlined, color: Colors.orange),
+                  ),
+                  keyboardType: TextInputType.number,
                 ),
-                child: const Row(
+                const SizedBox(height: 20),
+                
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedGender,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E1B4B),
+                      style: const TextStyle(color: Colors.white),
+                      items: ['Male', 'Female', 'Other', 'Prefer not to say']
+                          .map((gender) => DropdownMenuItem(value: gender, child: Text(gender)))
+                          .toList(),
+                      onChanged: (value) => setState(() => _selectedGender = value!),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.3)),
+                  ),
+                child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF4CAF50)),
-                    SizedBox(width: 12),
+                    const Icon(Icons.info_outline, color: Color(0xFF00E5FF)),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
+                      child: const Text(
                         'We automatically detect your timezone for better reminders 🌍',
-                        style: TextStyle(fontSize: 14, color: Color(0xFF4CAF50)),
+                        style: TextStyle(fontSize: 14, color: Colors.white70),
                       ),
                     ),
                   ],
                 ),
-              ),
-              
-              const Spacer(),
-              
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveUserDetails,
-                  child: _isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Complete Setup 🚀'),
                 ),
-              ),
-            ],
+                
+                const Spacer(),
+                
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _saveUserDetails,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: _isLoading
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Complete Setup 🚀', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

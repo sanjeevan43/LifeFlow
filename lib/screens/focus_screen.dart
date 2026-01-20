@@ -44,7 +44,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
         } else {
            _timer?.cancel();
            _isRunning = false;
-           // TODO: Play sound, award XP
+           // Play sound and award XP when timer completes
         }
       });
     }

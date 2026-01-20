@@ -152,7 +152,10 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline),
-                            onPressed: () => FirebaseService.deleteTask(task.id),
+                            onPressed: () {
+                              FirebaseService.deleteTask(task.id);
+                              NotificationService.cancelLocalNotification(task.id);
+                            },
                           ),
                         ],
                       ),
@@ -305,7 +308,7 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
   }
 
   Future<void> _addTask(String title, String description, DateTime? reminderTime) async {
-    await FirebaseService.addTask({
+    final docRef = await FirebaseService.addTask({
       'title': title,
       'description': description,
       'isCompleted': false,
@@ -313,7 +316,7 @@ class _TasksScreenState extends State<TasksScreen> with AutomaticKeepAliveClient
     });
     
     if (reminderTime != null && reminderTime.isAfter(DateTime.now())) {
-      await NotificationService.scheduleTaskReminder(title, reminderTime);
+      await NotificationService.scheduleTaskReminder(docRef.id, title, reminderTime);
     }
   }
 

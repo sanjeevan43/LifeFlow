@@ -92,15 +92,9 @@ class NotificationService {
   }
 
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    // Show local notification
-    // Note: on Web, Firebase Messaging automatically supports foreground notifications if configured,
-    // but showing a manual one is also possible if the automatic one doesn't trigger.
-    
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
-    // If `onMessage` is triggered with a notification, construct our own
-    // local notification to show to users using the created channel.
     if (notification != null && android != null) {
       await _localNotifications.show(
         notification.hashCode,
@@ -110,7 +104,8 @@ class NotificationService {
           android: AndroidNotificationDetails(
             'lifeflow_channel',
             'LifeFlow Notifications',
-            importance: Importance.high,
+            importance: Importance.max,
+            priority: Priority.high,
           ),
           iOS: DarwinNotificationDetails(),
         ),
@@ -118,37 +113,95 @@ class NotificationService {
     }
   }
 
-  static Future<void> scheduleTaskReminder(String taskTitle, DateTime dateTime) async {
+  /// Schedule a generic local notification
+  static Future<void> scheduleLocalNotification(String id, String title, DateTime dateTime) async {
+    if (dateTime.isBefore(DateTime.now())) return;
+
     await _localNotifications.zonedSchedule(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      id.hashCode,
+      'Reminder',
+      title,
+      tz.TZDateTime.from(dateTime, tz.local),
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'reminders',
+          'General Reminders',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
+  /// Cancel a specific local notification
+  static Future<void> cancelLocalNotification(String id) async {
+    await _localNotifications.cancel(id.hashCode);
+  }
+
+  /// Reschedule a specific local notification
+  static Future<void> rescheduleNotification(String id, String title, DateTime dateTime) async {
+    await cancelLocalNotification(id);
+    await scheduleLocalNotification(id, title, dateTime);
+  }
+
+  static Future<void> scheduleTaskReminder(String id, String title, DateTime dateTime) async {
+    if (dateTime.isBefore(DateTime.now())) return;
+
+    await _localNotifications.zonedSchedule(
+      id.hashCode,
       'Task Reminder',
-      taskTitle,
+      title,
       tz.TZDateTime.from(dateTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'task_reminders',
           'Task Reminders',
-          importance: Importance.high,
+          importance: Importance.max,
+          priority: Priority.high,
         ),
+        iOS: DarwinNotificationDetails(),
       ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
-  static Future<void> scheduleHabitReminder(String habitTitle, DateTime dateTime) async {
+  static Future<void> scheduleHabitReminder(String id, String title, DateTime dateTime) async {
+    if (dateTime.isBefore(DateTime.now())) return;
+
     await _localNotifications.zonedSchedule(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      id.hashCode,
       'Habit Reminder',
-      "Don't forget: $habitTitle",
+      "Don't forget: $title",
       tz.TZDateTime.from(dateTime, tz.local),
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'habit_reminders',
           'Habit Reminders',
-          importance: Importance.high,
+          importance: Importance.max,
+          priority: Priority.high,
         ),
+        iOS: DarwinNotificationDetails(),
       ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
     );
+  }
+
+  /// Clear FCM token on logout
+  static Future<void> logout() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      try {
+        await _firestore.collection('users').doc(user.uid).update({
+          'fcmToken': FieldValue.delete(),
+        });
+      } catch (e) {
+        // Doc might not exist or field might already be missing
+      }
+    }
   }
 }

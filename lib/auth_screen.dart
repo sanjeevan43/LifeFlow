@@ -52,15 +52,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _createUserProfile(User user) async {
     final email = user.email!;
+    final displayName = user.displayName ?? email.split('@')[0];
     final username = email.split('@')[0];
     final domain = email.split('@')[1];
-    
-    String displayName = username.replaceAll(RegExp(r'[0-9._-]'), ' ').trim();
-    displayName = displayName.split(' ').map((word) => 
-      word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : ''
-    ).join(' ');
-    
-    if (displayName.isEmpty) displayName = username;
 
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
       'uid': user.uid,
@@ -68,6 +62,7 @@ class _AuthScreenState extends State<AuthScreen> {
       'displayName': displayName,
       'username': username,
       'domain': domain,
+      'photoURL': user.photoURL,
       'createdAt': FieldValue.serverTimestamp(),
       'profileComplete': false,
       'lastActive': FieldValue.serverTimestamp(),
@@ -85,74 +80,103 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4CAF50),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4CAF50).withOpacity(0.3),
-                      blurRadius: 15,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                ),
-                child: const Icon(Icons.task_alt, size: 50, color: Colors.white),
-              ),
-              const SizedBox(height: 24),
-              Text(_isLogin ? 'Welcome Back! 😊' : 'Get Started! 🌟', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2E3440))),
-              const SizedBox(height: 8),
-              Text(
-                _isLogin ? 'Sign in to continue your productive journey' : 'Create account to start achieving your goals',
-                style: const TextStyle(fontSize: 16, color: Color(0xFF4CAF50)),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF4CAF50)),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: Icon(Icons.lock_outline, color: Color(0xFF4CAF50)),
-                ),
-                obscureText: true,
-              ),
-              
-              const SizedBox(height: 24),
-              
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _authenticate,
-                  child: _isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(_isLogin ? 'Sign In' : 'Create Account'),
-                ),
-              ),
-              
-              TextButton(
-                onPressed: () => setState(() => _isLogin = !_isLogin),
-                child: Text(_isLogin ? 'Create new account' : 'Already have account?', style: const TextStyle(color: Color(0xFF4CAF50))),
-              ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF1E1B4B),
+              Color(0xFF312E81),
             ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6C63FF).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.5), width: 2),
+                    ),
+                    child: const Icon(Icons.task_alt, size: 60, color: Color(0xFF00E5FF)),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    _isLogin ? 'Welcome Back!' : 'Get Started!', 
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.2)
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _isLogin ? 'Sign in to continue your journey' : 'Create account to start achieving goals',
+                    style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7)),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  
+                  TextField(
+                    controller: _emailController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF00E5FF)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  TextField(
+                    controller: _passwordController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF00E5FF)),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.05),
+                    ),
+                    obscureText: true,
+                  ),
+                  
+                  const SizedBox(height: 40),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _authenticate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C63FF),
+                        foregroundColor: Colors.white,
+                        elevation: 8,
+                        shadowColor: const Color(0xFF6C63FF).withOpacity(0.5),
+                      ),
+                      child: _isLoading
+                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text(_isLogin ? 'Sign In' : 'Create Account', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  TextButton(
+                    onPressed: () => setState(() => _isLogin = !_isLogin),
+                    child: Text(
+                      _isLogin ? 'Create new account' : 'Already have an account?', 
+                      style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 16)
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

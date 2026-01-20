@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
+import '../services/gamification_service.dart';
 
 class WaterScreen extends StatefulWidget {
   const WaterScreen({super.key});
@@ -108,20 +109,20 @@ class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClient
                   child: CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 12,
-                    backgroundColor: Colors.blue.shade100,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E5FF)),
                   ),
                 ),
                 Column(
                   children: [
-                    Icon(Icons.water_drop, size: 40, color: Colors.blue.shade600),
+                    const Icon(Icons.water_drop, size: 40, color: Color(0xFF00E5FF)),
                     Text(
                       '$current',
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       'of $goal glasses',
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: const TextStyle(color: Colors.white54),
                     ),
                   ],
                 ),
@@ -130,13 +131,13 @@ class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClient
             const SizedBox(height: 16),
             LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.blue.shade100,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade600),
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00E5FF)),
             ),
             const SizedBox(height: 8),
             Text(
               '${(progress * 100).round()}% of daily goal',
-              style: TextStyle(color: Colors.grey.shade600),
+              style: const TextStyle(color: Colors.white54),
             ),
           ],
         ),
@@ -224,18 +225,18 @@ class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClient
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: Colors.green.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.celebration, color: Colors.green.shade600),
+                    const Icon(Icons.celebration, color: Colors.green),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Congratulations! You\'ve reached your daily water goal!',
-                        style: TextStyle(color: Colors.green.shade700),
+                        style: TextStyle(color: Colors.green.withOpacity(0.8), fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -274,10 +275,12 @@ class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClient
     
     try {
       await FirebaseService.addWaterIntake(amount);
+      await GamificationService.awardXP(GamificationService.xpPerWater);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added $amount glass${amount > 1 ? 'es' : ''} of water!'),
+            content: const Text('Stay hydrated! +5 XP 💧'),
+            backgroundColor: Color(0xFF00E5FF),
             duration: const Duration(seconds: 1),
           ),
         );

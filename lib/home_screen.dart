@@ -4,6 +4,7 @@ import 'screens/tasks_screen.dart';
 import 'screens/habits_screen.dart';
 import 'screens/water_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/device_actions_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TasksScreen(),
           HabitsScreen(),
           WaterScreen(),
+          DeviceActionsScreen(),
           ProfileScreen(),
         ],
       ),
@@ -48,6 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.water_drop_rounded),
             label: 'Water',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.phone_android_rounded),
+            label: 'Device',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),

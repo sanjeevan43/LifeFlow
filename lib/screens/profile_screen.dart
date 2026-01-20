@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
+import 'permissions_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -125,6 +126,13 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
       child: Column(
         children: [
           ListTile(
+            leading: const Icon(Icons.security),
+            title: const Text('App Permissions'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PermissionsScreen())),
+          ),
+          const Divider(height: 1),
+          ListTile(
             leading: const Icon(Icons.notifications),
             title: const Text('Notifications'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -136,6 +144,13 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
             title: const Text('Backup & Sync'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () => _showBackupInfo(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip),
+            title: const Text('Privacy Policy'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen())),
           ),
           const Divider(height: 1),
           ListTile(
@@ -157,27 +172,11 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
 
   Future<Map<String, int>> _getStats() async {
     try {
-      final tasksSnapshot = await FirebaseFirestore.instance
-          .collection('tasks')
-          .where('userId', isEqualTo: FirebaseService.currentUserId)
-          .get();
-      
-      final habitsSnapshot = await FirebaseFirestore.instance
-          .collection('habits')
-          .where('userId', isEqualTo: FirebaseService.currentUserId)
-          .get();
-      
-      final today = DateTime.now();
-      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final waterDoc = await FirebaseFirestore.instance
-          .collection('water_intake')
-          .doc('${FirebaseService.currentUserId}_$dateKey')
-          .get();
-      
+      final stats = await FirebaseService.getUserStats();
       return {
-        'tasks': tasksSnapshot.docs.length,
-        'habits': habitsSnapshot.docs.length,
-        'water': waterDoc.data()?['amount'] ?? 0,
+        'tasks': stats['totalTasks'] ?? 0,
+        'habits': stats['totalHabits'] ?? 0,
+        'water': stats['waterIntake'] ?? 0,
       };
     } catch (e) {
       return {'tasks': 0, 'habits': 0, 'water': 0};
@@ -204,6 +203,7 @@ class _ProfileScreenState extends State<ProfileScreen> with AutomaticKeepAliveCl
               onPressed: () async {
                 Navigator.pop(context);
                 await NotificationService.scheduleTaskReminder(
+                  'test_id',
                   'Test Notification', 
                   DateTime.now().add(const Duration(seconds: 5))
                 );

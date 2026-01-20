@@ -8,6 +8,7 @@ class GamificationService {
   // XP Constants
   static const int xpPerTask = 10;
   static const int xpPerHabit = 20;
+  static const int xpPerWater = 5;
 
   static Future<void> awardXP(int amount) async {
     final user = _auth.currentUser;

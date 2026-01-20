@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Reminder {
   final String id;
   final String title;
@@ -19,7 +21,9 @@ class Reminder {
     return Reminder(
       id: id,
       title: data['title'] ?? '',
-      remindAt: DateTime.parse(data['remindAt']),
+      remindAt: data['remindAt'] is Timestamp 
+          ? (data['remindAt'] as Timestamp).toDate() 
+          : DateTime.parse(data['remindAt'] ?? DateTime.now().toIso8601String()),
       isRepeating: data['isRepeating'] ?? false,
       isDone: data['isDone'] ?? false,
       userId: data['userId'] ?? '',
@@ -29,7 +33,7 @@ class Reminder {
   Map<String, dynamic> toFirestore() {
     return {
       'title': title,
-      'remindAt': remindAt.toIso8601String(),
+      'remindAt': Timestamp.fromDate(remindAt),
       'isRepeating': isRepeating,
       'isDone': isDone,
       'userId': userId,

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/habit.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
+import '../services/gamification_service.dart';
 
 class HabitsScreen extends StatefulWidget {
   const HabitsScreen({super.key});
@@ -234,7 +235,7 @@ class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClie
   }
 
   Future<void> _addHabit(String title, String description) async {
-    await FirebaseService.addHabit({
+    final docRef = await FirebaseService.addHabit({
       'title': title,
       'description': description,
       'targetCount': 1,
@@ -243,7 +244,7 @@ class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClie
     
     // Schedule daily habit reminder
     final tomorrow = DateTime.now().add(const Duration(days: 1));
-    await NotificationService.scheduleHabitReminder(title, tomorrow);
+    await NotificationService.scheduleHabitReminder(docRef.id, title, tomorrow);
   }
 
   Future<void> _toggleHabit(Habit habit) async {
@@ -281,6 +282,17 @@ class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClie
           'lastCompleted': Timestamp.fromDate(now),
           'currentStreak': newStreak,
         });
+
+        // Award XP for habit completion
+        await GamificationService.awardXP(GamificationService.xpPerHabit);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Habit Completed! +20 XP'),
+              backgroundColor: Color(0xFF6C63FF),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -294,6 +306,7 @@ class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClie
   Future<void> _deleteHabit(String habitId) async {
     try {
       await FirebaseService.deleteHabit(habitId);
+      await NotificationService.cancelLocalNotification(habitId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Habit deleted')),

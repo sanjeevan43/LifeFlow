@@ -104,12 +104,16 @@ class _TodayScreenState extends State<TodayScreen> with AutomaticKeepAliveClient
         final next = tasks.first;
         
         return Card(
-          color: Colors.blue.shade50,
+          color: const Color(0xFF1E293B), // Dark slate blue
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.blue.withOpacity(0.3), width: 1),
+          ),
           child: ListTile(
-            leading: Icon(Icons.schedule, color: Colors.blue.shade600),
-            title: const Text('Next Task'),
-            subtitle: Text(next.title),
-            trailing: Text(DateFormat('MMM dd').format(next.dueDate!)),
+            leading: const Icon(Icons.schedule, color: Color(0xFF00E5FF)),
+            title: const Text('Next Task', style: TextStyle(color: Colors.white70)),
+            subtitle: Text(next.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            trailing: Text(DateFormat('MMM dd').format(next.dueDate!), style: const TextStyle(color: Color(0xFF00E5FF))),
           ),
         );
       },

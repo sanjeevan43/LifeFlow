@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_screen.dart';
 import 'home_screen.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
+import 'services/voice_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,13 @@ void main() async {
   // Initialize Notifications
   await NotificationService.initialize();
   
+  // Initialize Voice Service (only on mobile platforms)
+  if (!kIsWeb) {
+    await VoiceService.initialize((command) {
+      // Handle background voice commands
+    });
+  }
+
   runApp(const LifeFlowApp());
 }
 
@@ -42,11 +51,11 @@ class LifeFlowApp extends StatelessWidget {
           onBackground: Colors.white,      // White text on background
         ),
         // Card theme - VISIBLE cards
-        cardTheme: CardTheme(
+        cardTheme: CardTheme.of(context).copyWith(
           color: const Color(0xFF1E1E1E),
           elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
         ),
         // AppBar theme
@@ -164,30 +173,41 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: Center(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF1E1B4B),
+              Color(0xFF312E81),
+            ],
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4CAF50).withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+                color: const Color(0xFF6C63FF).withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.5), width: 2),
               ),
-              child: const Icon(Icons.task_alt, size: 60, color: Colors.white),
+              child: const Icon(Icons.task_alt, size: 70, color: Color(0xFF00E5FF)),
             ),
-            const SizedBox(height: 24),
-            const Text('LifeFlow', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2E3440))),
+            const SizedBox(height: 32),
+            const Text(
+              'LifeFlow', 
+              style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0)
+            ),
             const SizedBox(height: 8),
-            const Text('Stay organized, stay productive', style: TextStyle(fontSize: 16, color: Color(0xFF4CAF50))),
+            Text(
+              'Stay organized, stay productive', 
+              style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.7))
+            ),
           ],
         ),
       ),
@@ -201,30 +221,38 @@ class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: Center(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF1E1B4B),
+              Color(0xFF312E81),
+            ],
+          ),
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4CAF50).withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
+                color: const Color(0xFF6C63FF).withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF6C63FF).withOpacity(0.5), width: 2),
               ),
-              child: const Icon(Icons.task_alt, size: 40, color: Colors.white),
+              child: const Icon(Icons.task_alt, size: 50, color: Color(0xFF00E5FF)),
             ),
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(color: Color(0xFF00E5FF)),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            const Text('Setting up your profile...', style: TextStyle(fontSize: 16)),
+            const Text(
+              'Aligning your flow...', 
+              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w500)
+            ),
           ],
         ),
       ),

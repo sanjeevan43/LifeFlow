@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/settings_service.dart';
 import 'services/auth_service.dart';
-import 'services/fcm_service.dart';
+import 'services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> logout() async {
-    await FCMService.deleteFCMTokenOnLogout();
+    await NotificationService.logout();
     await AuthService.logoutUser();
   }
 }
