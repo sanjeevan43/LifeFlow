@@ -65,16 +65,58 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   }
 
   Future<void> saveReminder() async {
-    if (_titleController.text.isEmpty) return;
+    if (_titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a reminder title')),
+      );
+      return;
+    }
     
-    final reminder = Reminder(
-      id: '',
-      title: _titleController.text,
-      remindAt: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute),
-      userId: FirebaseAuth.instance.currentUser!.uid,
+    // Critical Fix #1: Add null check for user authentication
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please sign in first')),
+        );
+      }
+      return;
+    }
+    
+    // Fix #15: Validate that reminder time is in the future
+    final reminderDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
     );
     
-    await ReminderService.createReminder(reminder);
-    if (mounted) Navigator.pop(context);
+    if (reminderDateTime.isBefore(DateTime.now())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reminder time must be in the future')),
+        );
+      }
+      return;
+    }
+    
+    try {
+      final reminder = Reminder(
+        id: '',
+        title: _titleController.text,
+        remindAt: reminderDateTime,
+        userId: userId,
+      );
+      
+      await ReminderService.createReminder(reminder);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving reminder: $e')),
+        );
+      }
+    }
   }
 }

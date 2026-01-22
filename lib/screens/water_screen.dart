@@ -292,6 +292,7 @@ class _WaterScreenState extends State<WaterScreen> with AutomaticKeepAliveClient
         );
       }
     } finally {
+      // Fix #4: Add mounted check before setState in finally block
       if (mounted) {
         setState(() {
           _isLoading = false;

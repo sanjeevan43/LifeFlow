@@ -135,6 +135,9 @@ class _DeviceActionsScreenState extends State<DeviceActionsScreen> with SingleTi
 
   @override
   void dispose() {
+    // Fix #11: Properly dispose speech object to prevent memory leak
+    _speech.stop();
+    _speech.cancel();
     _pulseController.dispose();
     super.dispose();
   }

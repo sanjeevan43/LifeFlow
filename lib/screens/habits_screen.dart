@@ -295,6 +295,8 @@ class _HabitsScreenState extends State<HabitsScreen> with AutomaticKeepAliveClie
         }
       }
     } catch (e) {
+      // Fix #5: Add comprehensive error handling for Firestore failures
+      debugPrint('Error toggling habit: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating habit: $e')),

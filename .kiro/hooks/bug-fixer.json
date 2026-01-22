@@ -1,0 +1,11 @@
+{
+  "name": "Bug Fixer Agent",
+  "description": "Automatically tests and fixes bugs in LifeFlow app",
+  "trigger": "manual",
+  "action": {
+    "type": "agent",
+    "prompt": "Run comprehensive bug testing on LifeFlow app:\n1. Run flutter analyze and fix all errors\n2. Check each screen for runtime errors\n3. Test Firebase connectivity\n4. Test all CRUD operations (Tasks, Habits, Water)\n5. Verify authentication flow\n6. Test notifications\n7. Check XP gamification\n8. Fix any issues found\n9. Provide detailed report of bugs found and fixed"
+  },
+  "icon": "bug_report",
+  "color": "#FF5252"
+}

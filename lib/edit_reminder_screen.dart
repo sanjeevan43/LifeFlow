@@ -97,26 +97,58 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
   }
 
   Future<void> _updateReminder() async {
-    if (_titleController.text.isEmpty) return;
+    if (_titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a reminder title')),
+      );
+      return;
+    }
+    
+    // Fix #9: Validate that reminder time is in the future
+    final reminderDateTime = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+    
+    if (reminderDateTime.isBefore(DateTime.now())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reminder time must be in the future')),
+        );
+      }
+      return;
+    }
     
     setState(() => _isLoading = true);
     
-    final updatedReminder = Reminder(
-      id: widget.reminder.id,
-      title: _titleController.text,
-      remindAt: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, _selectedTime.hour, _selectedTime.minute),
-      userId: widget.reminder.userId,
-      isDone: widget.reminder.isDone,
-      isRepeating: widget.reminder.isRepeating,
-    );
-    
-    await ReminderService.updateReminder(updatedReminder);
-    
-    if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reminder updated successfully')),
+    try {
+      final updatedReminder = Reminder(
+        id: widget.reminder.id,
+        title: _titleController.text,
+        remindAt: reminderDateTime,
+        userId: widget.reminder.userId,
+        isDone: widget.reminder.isDone,
+        isRepeating: widget.reminder.isRepeating,
       );
+      
+      await ReminderService.updateReminder(updatedReminder);
+      
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reminder updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating reminder: $e')),
+        );
+      }
     }
   }
 

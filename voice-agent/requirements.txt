@@ -1,0 +1,9 @@
+SpeechRecognition
+pyttsx3
+pyaudio
+colorama
+psutil
+pyjokes
+customtkinter
+packaging
+requests

@@ -37,12 +37,18 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           .doc(widget.user.uid)
           .get();
       
+      // Fix #13: Add null check before accessing document data
       if (doc.exists && mounted) {
-        final data = doc.data()!;
-        _nameController.text = data['displayName'] ?? '';
+        final data = doc.data();
+        if (data != null) {
+          _nameController.text = data['displayName'] ?? '';
+          _ageController.text = data['age']?.toString() ?? '';
+          _selectedGender = data['gender'] ?? 'Prefer not to say';
+        }
       }
     } catch (e) {
-      // Handle error silently
+      debugPrint('Error loading user data: $e');
+      // Handle error silently - user can fill in details
     }
   }
 
@@ -50,6 +56,15 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     if (_nameController.text.isEmpty) {
       _showError('Please enter your name');
       return;
+    }
+    
+    // Fix #19: Add age validation
+    if (_ageController.text.isNotEmpty) {
+      final age = int.tryParse(_ageController.text);
+      if (age == null || age < 0 || age > 150) {
+        _showError('Please enter a valid age (0-150)');
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
